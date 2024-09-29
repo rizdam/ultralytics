@@ -89,6 +89,7 @@ class Tuner:
             "hsv_s": (0.0, 0.9),  # image HSV-Saturation augmentation (fraction)
             "hsv_v": (0.0, 0.9),  # image HSV-Value augmentation (fraction)
             "gaussian_noise": (0.0, 0.9), #image gaussian noise #by rizky
+            "brightness_factor": (0.0,1.0), #image brightness factor #by 2 rizky
             "degrees": (0.0, 45.0),  # image rotation (+/- deg)
             "translate": (0.0, 0.9),  # image translation (+/- fraction)
             "scale": (0.0, 0.95),  # image scale (+/- gain)

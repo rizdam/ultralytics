@@ -105,6 +105,7 @@ hsv_h: 0.015 # (float) image HSV-Hue augmentation (fraction)
 hsv_s: 0.7 # (float) image HSV-Saturation augmentation (fraction)
 hsv_v: 0.4 # (float) image HSV-Value augmentation (fraction)
 gaussian_noise: 0.05 #by rizky
+brightness_factor: 0.5 #by 2 rizky
 degrees: 0.0 # (float) image rotation (+/- deg)
 translate: 0.1 # (float) image translation (+/- fraction)
 scale: 0.5 # (float) image scale (+/- gain)
