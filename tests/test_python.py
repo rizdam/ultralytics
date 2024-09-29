@@ -553,7 +553,7 @@ def test_classify_transforms_train(image, auto_augment, erasing, force_color_jit
         hsv_h=0.015,
         hsv_s=0.4,
         hsv_v=0.4,
-        gaussian_noise=0.1, #by rizky
+        gaussian_noise=0.05, #by rizky
         force_color_jitter=force_color_jitter,
         erasing=erasing,
     )

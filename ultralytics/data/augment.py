@@ -1378,7 +1378,7 @@ class RandomHSV:
         return labels
 
 class RandomGaussianNoise: #by rizky
-    def __init__(self, noise_level=0.1):
+    def __init__(self, noise_level=0.05):
         self.noise_level = noise_level
 
     def __call__(self, labels):
@@ -2404,7 +2404,7 @@ def classify_augmentations(
     hsv_h=0.015,  # image HSV-Hue augmentation (fraction)
     hsv_s=0.4,  # image HSV-Saturation augmentation (fraction)
     hsv_v=0.4,  # image HSV-Value augmentation (fraction)
-    gaussian_noise = 0.0, #image gaussian noise #by rizky
+    gaussian_noise = 0.05, #image gaussian noise #by rizky
     force_color_jitter=False,
     erasing=0.0,
     interpolation="BILINEAR",
