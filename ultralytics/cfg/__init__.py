@@ -123,6 +123,7 @@ CFG_FRACTION_KEYS = {  # fractional float arguments with 0.0<=values<=1.0
     "hsv_h",
     "hsv_s",
     "hsv_v",
+    "gaussian_noise" #by rizky
     "translate",
     "scale",
     "perspective",
@@ -689,10 +690,10 @@ def entrypoint(debug=""):
         >>> entrypoint("train data=coco8.yaml model=yolov8n.pt epochs=10 lr0=0.01")
 
         Predict a YouTube video using a pretrained segmentation model at image size 320:
-        >>> entrypoint("predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320")
+        # >>> entrypoint("predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320") #by rizky
 
         Validate a pretrained detection model at batch-size 1 and image size 640:
-        >>> entrypoint("val model=yolov8n.pt data=coco8.yaml batch=1 imgsz=640")
+        # >>> entrypoint("val model=yolov8n.pt data=coco8.yaml batch=1 imgsz=640") #by rizky
 
     Notes:
         - If no arguments are passed, the function will display the usage help message.

@@ -70,6 +70,7 @@ def run_ray_tune(
         "hsv_h": tune.uniform(0.0, 0.1),  # image HSV-Hue augmentation (fraction)
         "hsv_s": tune.uniform(0.0, 0.9),  # image HSV-Saturation augmentation (fraction)
         "hsv_v": tune.uniform(0.0, 0.9),  # image HSV-Value augmentation (fraction)
+        "gaussian_noise": tune.uniform (0.0, 0.9), #image Gaussian Noise #by rizky
         "degrees": tune.uniform(0.0, 45.0),  # image rotation (+/- deg)
         "translate": tune.uniform(0.0, 0.9),  # image translation (+/- fraction)
         "scale": tune.uniform(0.0, 0.9),  # image scale (+/- gain)

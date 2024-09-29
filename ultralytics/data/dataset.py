@@ -452,6 +452,7 @@ class ClassificationDataset:
                 hsv_h=args.hsv_h,
                 hsv_s=args.hsv_s,
                 hsv_v=args.hsv_v,
+                gaussian_noise=args.gaussian_noise, #by rizky
             )
             if augment
             else classify_transforms(size=args.imgsz, crop_fraction=args.crop_fraction)
