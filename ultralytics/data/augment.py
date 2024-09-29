@@ -8,7 +8,7 @@ from typing import Tuple, Union
 import cv2
 import numpy as np
 import torch
-from PIL import Image
+from PIL import Image, ImageEnhance
 
 from ultralytics.data.utils import polygons2masks, polygons2masks_overlap
 from ultralytics.utils import LOGGER, colorstr
@@ -1377,6 +1377,25 @@ class RandomHSV:
             cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR, dst=img)  # no return needed
         return labels
 
+class RandomBrightness: #by 2 rizky
+    def __init__(self, brightness_factor=0.5):
+        self.brightness_factor = brightness_factor
+
+    def __call__(self, labels):
+        img = labels["img"]
+        if isinstance(img, str):
+            img_pil = Image.open(img)
+        else:
+            img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+        enhancer = ImageEnhance.Brightness(img_pil)
+        img_pil = enhancer.enhance(self.brightness_factor*2)
+
+        img = np.array(img_pil)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        labels["img"] = img
+        return labels
+
 class RandomGaussianNoise: #by rizky
     def __init__(self, noise_level=0.1):
         self.noise_level = noise_level
@@ -2328,6 +2347,7 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             Albumentations(p=1.0),
             RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
             RandomGaussianNoise(noise_level=hyp.gaussian_noise), #by rizky
+            RandomBrightness(brightness_factor=hyp.brightness_factor), #by 2 rizky
             RandomFlip(direction="vertical", p=hyp.flipud),
             RandomFlip(direction="horizontal", p=hyp.fliplr, flip_idx=flip_idx),
         ]
@@ -2405,6 +2425,7 @@ def classify_augmentations(
     hsv_s=0.4,  # image HSV-Saturation augmentation (fraction)
     hsv_v=0.4,  # image HSV-Value augmentation (fraction)
     gaussian_noise = 0.0, #image gaussian noise #by rizky
+    brightness_factor = 0.5, #image brightness factor #by 2 rizky
     force_color_jitter=False,
     erasing=0.0,
     interpolation="BILINEAR",
@@ -2489,6 +2510,9 @@ def classify_augmentations(
 
     if gaussian_noise > 0.0: #by rizky
         secondary_tfl.append(RandomGaussianNoise(noise_level=gaussian_noise))
+
+    if brightness_factor > 0.0: #by 2 rizky
+        secondary_tfl.append(RandomBrightness(brightness_factor=brightness_factor))
 
     final_tfl = [
         T.ToTensor(),
