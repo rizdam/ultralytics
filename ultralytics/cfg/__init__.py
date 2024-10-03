@@ -688,7 +688,7 @@ def entrypoint(debug=""):
 
     Examples:
         Train a detection model for 10 epochs with an initial learning_rate of 0.01:
-        >>> entrypoint("train data=coco8.yaml model=yolov8n.pt epochs=10 lr0=0.01")
+        >>> entrypoint("train data=coco8.yaml model=yolov8n.pt epochs=5 lr0=0.01")
 
         Predict a YouTube video using a pretrained segmentation model at image size 320:
         # >>> entrypoint("predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320") #by rizky
