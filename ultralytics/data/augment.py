@@ -22,19 +22,47 @@ DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
 DEFAULT_CROP_FRACTION = 1.0
 
-
 class ConvertToEquirectangular:
     def __init__(self):
         pass
 
+    def read_bboxes(self, labels):
+        instances = labels['instances']
+        instances.convert_bbox(format='xyxy')  # Convert to xyxy format if not already
+        img = labels['img']
+        h, w = img.shape[:2]
+        instances.denormalize(w, h)  # Denormalize if necessary
+        bboxes = instances.bboxes  # Access the bounding boxes
+        return bboxes
+
+    def update_bboxes(self, labels, new_bboxes):
+        instances = labels['instances']
+        img = labels['img']
+        h, w = img.shape[:2]
+        instances.update(bboxes=new_bboxes)  # Use the update method to set the new bounding boxes
+        instances.normalize(w, h)  # Normalize if necessary
+        labels['instances'] = instances  # Update the labels dictionary
+        return labels
+
     def __call__(self, labels):
         image = labels['img']
-        bboxes = labels["instances"].bboxes
+
+        # Read bounding boxes
+        bboxes = self.read_bboxes(labels)
+
+        # Convert to equirectangular and transform bounding boxes
         equirectangular_image, transformed_bboxes = self.convert_to_equirectangular(image, bboxes)
+
+        # Crop the image
         equirectangular_image = self.crop_image(equirectangular_image)
+
+        # Update the image in labels
         labels['img'] = equirectangular_image
+
+        # Update bounding boxes in labels if transformed_bboxes is not None
         if transformed_bboxes is not None:
-            labels['bboxes'] = transformed_bboxes
+            labels = self.update_bboxes(labels, transformed_bboxes)
+
         return labels
 
     def convert_to_equirectangular(self, image, bboxes=None):
@@ -103,13 +131,12 @@ class ConvertToEquirectangular:
 
                 transformed_corners.append([u_new, v_new])
 
-            transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
-            transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
-            transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
-            transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
+                transformed_x_min = min(corner[0] for corner in transformed_corners)
+                transformed_y_min = min(corner[1] for corner in transformed_corners)
+                transformed_x_max = max(corner[0] for corner in transformed_corners)
+                transformed_y_max = max(corner[1] for corner in transformed_corners)
 
             transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
-            print("Transformed Bboxes:", transformed_bboxes)
         return np.array(transformed_bboxes)
 
     def crop_image(self, image):
