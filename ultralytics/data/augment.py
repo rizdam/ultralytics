@@ -29,7 +29,7 @@ class ConvertToEquirectangular:
 
     def __call__(self, labels):
         image = labels['img']
-        bboxes = labels.get('bboxes', None)
+        bboxes = labels["instances"].bboxes
         equirectangular_image, transformed_bboxes = self.convert_to_equirectangular(image, bboxes)
         equirectangular_image = self.crop_image(equirectangular_image)
         labels['img'] = equirectangular_image
@@ -109,7 +109,7 @@ class ConvertToEquirectangular:
             transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
 
             transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
-
+            print("Transformed Bboxes:", transformed_bboxes)
         return np.array(transformed_bboxes)
 
     def crop_image(self, image):
