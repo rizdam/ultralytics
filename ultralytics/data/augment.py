@@ -64,11 +64,11 @@ class ConvertToEquirectangular:
 
         transformed_bboxes = None
         if bboxes is not None:
-            transformed_bboxes = self.transform_bboxes(bboxes, width, height, equirectangular_width, equirectangular_height, lon, lat)
+            transformed_bboxes = self.transform_bboxes(bboxes, width, height, equirectangular_width, equirectangular_height)
 
         return equirectangular_image, transformed_bboxes
 
-    def transform_bboxes(self, bboxes, width, height, equirectangular_width, equirectangular_height, lon, lat):
+    def transform_bboxes(self, bboxes, width, height, equirectangular_width, equirectangular_height):
         transformed_bboxes = []
         for bbox in bboxes:
             x_min, y_min, x_max, y_max = bbox
@@ -102,25 +102,15 @@ class ConvertToEquirectangular:
                 v_new = np.clip(v_new, 0, height - 1)
 
                 transformed_corners.append([u_new, v_new])
-            #
-            # transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.015)
-            # transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
-            # transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.015)
-            # transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
-
-            # transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
-            # transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
-            # transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
-            # transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
 
             transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
-            transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.175)
+            transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
             transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
-            transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.175)
+            transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
 
             transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
 
-        return transformed_bboxes
+        return np.array(transformed_bboxes)
 
     def crop_image(self, image):
         height, width, _ = image.shape
