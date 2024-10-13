@@ -31,6 +31,7 @@ class ConvertToEquirectangular:
         image = labels['img']
         bboxes = labels.get('bboxes', None)
         equirectangular_image, transformed_bboxes = self.convert_to_equirectangular(image, bboxes)
+        equirectangular_image = self.crop_image(equirectangular_image)
         labels['img'] = equirectangular_image
         if transformed_bboxes is not None:
             labels['bboxes'] = transformed_bboxes
@@ -41,77 +42,91 @@ class ConvertToEquirectangular:
             image = cv2.imread(image)
 
         height, width, channels = image.shape
-        equirectangular_width = 2 * width
-        equirectangular_height = int(width * 0.5)  # Assuming width is larger than height
+        equirectangular_width = width * 2
+        equirectangular_height = height
         equirectangular_image = np.zeros((equirectangular_height, equirectangular_width, channels), dtype=np.uint8)
 
-        for i in range(equirectangular_height):
-            for j in range(equirectangular_width):
-                lon = (j / equirectangular_width) * 2 * np.pi - np.pi  # Longitude from -π to π
-                lat = (i / equirectangular_height) * np.pi - (np.pi / 2)  # Latitude from -π/2 to π/2
+        lon = (np.arange(equirectangular_width) / equirectangular_width) * 2 * np.pi - np.pi
+        lat = (np.arange(equirectangular_height) / equirectangular_height) * np.pi - (np.pi / 2)
+        lon, lat = np.meshgrid(lon, lat)
 
-                # Spherical to Cartesian coordinates
-                x = np.cos(lat) * np.cos(lon)
-                y = np.sin(lat)
-                z = np.cos(lat) * np.sin(lon)
+        x = np.cos(lat) * np.cos(lon)
+        y = np.sin(lat)
+        z = np.cos(lat) * np.sin(lon)
 
-                # Map Cartesian coordinates to the standard image coordinates
-                u = int((x + 1) / 2 * width)  # Convert from [-1, 1] to [0, width]
-                v = int((y + 1) / 2 * height)  # Convert from [-1, 1] to [0, height]
+        u = ((x + 1) / 2 * width).astype(np.int32)
+        v = ((y + 1) / 2 * height).astype(np.int32)
 
-                u = np.clip(u, 0, width - 1)
-                v = np.clip(v, 0, height - 1)
+        u = np.clip(u, 0, width - 1)
+        v = np.clip(v, 0, height - 1)
 
-                # Assign the pixel value from the original image
-                equirectangular_image[i, j] = image[v, u]
+        equirectangular_image = image[v, u]
 
         transformed_bboxes = None
         if bboxes is not None:
-            transformed_bboxes = self.transform_bboxes(bboxes, width, height, equirectangular_width, equirectangular_height)
+            transformed_bboxes = self.transform_bboxes(bboxes, width, height, equirectangular_width, equirectangular_height, lon, lat)
 
         return equirectangular_image, transformed_bboxes
 
-    def transform_bboxes(self, bboxes, orig_width, orig_height, eq_width, eq_height):
+    def transform_bboxes(self, bboxes, width, height, equirectangular_width, equirectangular_height, lon, lat):
         transformed_bboxes = []
         for bbox in bboxes:
             x_min, y_min, x_max, y_max = bbox
 
-            # Convert bounding box coordinates to the center of the bounding box
-            x_center = (x_min + x_max) / 2
-            y_center = (y_min + y_max) / 2
+            # Transform each corner of the bounding box
+            corners = [
+                [x_min, y_min],
+                [x_max, y_min],
+                [x_min, y_max],
+                [x_max, y_max]
+            ]
 
-            # Convert to spherical coordinates
-            lon = (x_center / orig_width) * 2 * np.pi - np.pi
-            lat = (y_center / orig_height) * np.pi - (np.pi / 2)
+            transformed_corners = []
+            for corner in corners:
+                x_, y_ = corner
 
-            # Spherical to Cartesian coordinates
-            x = np.cos(lat) * np.cos(lon)
-            y = np.sin(lat)
-            z = np.cos(lat) * np.sin(lon)
+                # Convert image pixel (x_, y_) into latitude and longitude for the equirectangular projection
+                lon_corner = (x_ / equirectangular_width) * 2 * np.pi - np.pi
+                lat_corner = (y_ / equirectangular_height) * np.pi - (np.pi / 2)
 
-            # Map Cartesian coordinates to the equirectangular image coordinates
-            u_center = int((x + 1) / 2 * eq_width)
-            v_center = int((y + 1) / 2 * eq_height)
+                x_new = np.cos(lat_corner) * np.cos(lon_corner)
+                y_new = np.sin(lat_corner)
+                z_new = np.cos(lat_corner) * np.sin(lon_corner)
 
-            # Calculate new bounding box dimensions
-            bbox_width = (x_max - x_min) / orig_width * eq_width
-            bbox_height = (y_max - y_min) / orig_height * eq_height
+                # Map these new coordinates into equirectangular space
+                u_new = int(((x_new + 1) / 2) * width)
+                v_new = int(((y_new + 1) / 2) * height)
 
-            # Calculate new bounding box coordinates
-            new_x_min = u_center - bbox_width / 2
-            new_y_min = v_center - bbox_height / 2
-            new_x_max = u_center + bbox_width / 2
-            new_y_max = v_center + bbox_height / 2
+                # Ensure the transformed coordinates are within bounds
+                u_new = np.clip(u_new, 0, width - 1)
+                v_new = np.clip(v_new, 0, height - 1)
 
-            # Clip coordinates to be within image bounds
-            new_x_min = np.clip(new_x_min, 0, eq_width - 1)
-            new_y_min = np.clip(new_y_min, 0, eq_height - 1)
-            new_x_max = np.clip(new_x_max, 0, eq_width - 1)
-            new_y_max = np.clip(new_y_max, 0, eq_height - 1)
+                transformed_corners.append([u_new, v_new])
+            #
+            # transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.015)
+            # transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
+            # transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.015)
+            # transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
 
-            transformed_bboxes.append([new_x_min, new_y_min, new_x_max, new_y_max])
+            # transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
+            # transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
+            # transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
+            # transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.15)
 
-        return np.array(transformed_bboxes)
+            transformed_x_min = min(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
+            transformed_y_min = min(corner[1] for corner in transformed_corners)+(equirectangular_height*0.175)
+            transformed_x_max = max(corner[0] for corner in transformed_corners)-(equirectangular_width*0.02)
+            transformed_y_max = max(corner[1] for corner in transformed_corners)+(equirectangular_height*0.175)
+
+            transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
+
+        return transformed_bboxes
+
+    def crop_image(self, image):
+        height, width, _ = image.shape
+        cropped_image = image[:, :width // 2]
+        return cropped_image
+
 
 class BaseTransform:
     """
