@@ -137,7 +137,7 @@ class ConvertToEquirectangular:
                 transformed_y_max = max(corner[1] for corner in transformed_corners)
 
             transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
-        return np.array(transformed_bboxes)
+        return np.array(transformed_bboxes,dtype=np.float64)
 
     def crop_image(self, image):
         height, width, _ = image.shape
@@ -765,7 +765,7 @@ class Mosaic(BaseMixTransform):
             padw, padh = c[:2]
             x1, y1, x2, y2 = (max(x, 0) for x in c)  # allocate coords
 
-            img3[y1:y2, x1:x2] = img[y1 - padh:, x1 - padw:]  # img3[ymin:ymax, xmin:xmax]
+            img3[y1:y2, x1:x2] = img[y1 - padh :, x1 - padw :]  # img3[ymin:ymax, xmin:xmax]
             # hp, wp = h, w  # height, width previous for next iteration
 
             # Labels assuming imgsz*2 mosaic size
@@ -773,7 +773,7 @@ class Mosaic(BaseMixTransform):
             mosaic_labels.append(labels_patch)
         final_labels = self._cat_labels(mosaic_labels)
 
-        final_labels["img"] = img3[-self.border[0]: self.border[0], -self.border[1]: self.border[1]]
+        final_labels["img"] = img3[-self.border[0] : self.border[0], -self.border[1] : self.border[1]]
         return final_labels
 
     def _mosaic4(self, labels):
@@ -895,7 +895,7 @@ class Mosaic(BaseMixTransform):
             x1, y1, x2, y2 = (max(x, 0) for x in c)  # allocate coords
 
             # Image
-            img9[y1:y2, x1:x2] = img[y1 - padh:, x1 - padw:]  # img9[ymin:ymax, xmin:xmax]
+            img9[y1:y2, x1:x2] = img[y1 - padh :, x1 - padw :]  # img9[ymin:ymax, xmin:xmax]
             hp, wp = h, w  # height, width previous for next iteration
 
             # Labels assuming imgsz*2 mosaic size
@@ -903,7 +903,7 @@ class Mosaic(BaseMixTransform):
             mosaic_labels.append(labels_patch)
         final_labels = self._cat_labels(mosaic_labels)
 
-        final_labels["img"] = img9[-self.border[0]: self.border[0], -self.border[1]: self.border[1]]
+        final_labels["img"] = img9[-self.border[0] : self.border[0], -self.border[1] : self.border[1]]
         return final_labels
 
     @staticmethod
