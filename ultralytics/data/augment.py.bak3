@@ -26,6 +26,24 @@ class ConvertToEquirectangular:
     def __init__(self):
         pass
 
+    def read_bboxes(self, labels):
+        instances = labels['instances']
+        instances.convert_bbox(format='xyxy')  # Convert to xyxy format if not already
+        img = labels['img']
+        h, w = img.shape[:2]
+        instances.denormalize(w, h)  # Denormalize if necessary
+        bboxes = instances.bboxes  # Access the bounding boxes
+        return bboxes
+
+    def update_bboxes(self, labels, new_bboxes):
+        instances = labels['instances']
+        img = labels['img']
+        h, w = img.shape[:2]
+        instances.update(bboxes=new_bboxes)  # Use the update method to set the new bounding boxes
+        # instances.denormalize(w, h)  # Normalize if necessary
+        labels['instances'] = instances  # Update the labels dictionary
+        return labels
+
     def __call__(self, labels):
         image = labels['img']
 
@@ -41,39 +59,11 @@ class ConvertToEquirectangular:
         # Update the image in labels
         labels['img'] = equirectangular_image
 
-        #Update bounding boxes in labels if transformed_bboxes is not None
+        # Update bounding boxes in labels if transformed_bboxes is not None
         if transformed_bboxes is not None:
             labels = self.update_bboxes(labels, transformed_bboxes)
 
         return labels
-
-    def read_bboxes(self, labels):
-        instances = labels['instances']
-        instances.convert_bbox(format='xyxy')  # Convert to xyxy format if not already
-        img = labels['img']
-        h, w = img.shape[:2]
-        instances.denormalize(w, h)  # Denormalize if necessary
-        bboxes = instances.bboxes  # Access the bounding boxes
-        #self.write_to_file("WOIII.txt",str(bboxes)+"\n"+str(w)+"\n"+str(h)+"\n")
-        return bboxes
-
-    def update_bboxes(self, labels, new_bboxes):
-        instances = labels["instances"]
-        img = labels["img"]
-        h, w = img.shape[:2]
-        bboxes = np.array(new_bboxes, dtype=np.float32)
-        instances.update(bboxes=bboxes)  # Use the update method to set the new bounding boxes
-        instances.normalize(w, h)  # Normalize if necessary
-        labels["instances"] = instances  # Update the labels dictionary
-        return labels
-
-    def write_to_file(self,filename, content):
-        try:
-            with open(filename, 'w') as file:
-                file.write(content)
-            print(f"Content successfully written to {filename}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
 
     def convert_to_equirectangular(self, image, bboxes=None):
         if isinstance(image, str):
@@ -84,7 +74,7 @@ class ConvertToEquirectangular:
         equirectangular_height = height
         equirectangular_image = np.zeros((equirectangular_height, equirectangular_width, channels), dtype=np.uint8)
 
-        matrix = [[0 for _ in range(width+1)] for _ in range(height+1)]
+        matrix = [[0 for _ in range(width)] for _ in range(height)]
 
         for i in range(equirectangular_height):
             for j in range(equirectangular_width):
@@ -125,10 +115,6 @@ class ConvertToEquirectangular:
         transformed_bboxes = []
         for bbox in bboxes:
             x_min, y_min, x_max, y_max = bbox
-            x_min=int(math.floor(x_min))
-            y_min=int(math.floor(y_min))
-            x_max=int(math.floor(x_max))
-            y_max=int(math.floor(y_max))
 
             # Transform each corner of the bounding box
             corners = [
@@ -138,12 +124,13 @@ class ConvertToEquirectangular:
                 [x_max, y_max]
             ]
 
-            #self.write_to_file("WOXXX.txt", str(corners) + "\n" + str(width) + "\n" + str(height) + "\n")
-
             transformed_corners = []
             for corner in corners:
                 x_, y_ = corner
-                while (not isinstance(matrix[y_][x_], list)) & (y_ < height):
+                x_=int(x_)
+                y_=int(y_)
+                # print(x_, y_)
+                while (not isinstance(matrix[y_][x_], list)) & (y_ < height - 1):
                     y_ += 1
                 while (not isinstance(matrix[y_][x_], list)) & (y_ > 0):
                     y_ -= 1
@@ -159,7 +146,7 @@ class ConvertToEquirectangular:
             transformed_x_max = max(corner[0] for corner in transformed_corners)
             transformed_y_max = max(corner[1] for corner in transformed_corners)
 
-            transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
+            transformed_bboxes.append([np.float32(transformed_x_min), np.float32(transformed_y_min), np.float32(transformed_x_max), np.float32(transformed_y_max)])
 
         return transformed_bboxes
 
