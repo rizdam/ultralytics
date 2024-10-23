@@ -67,13 +67,13 @@ class ConvertToEquirectangular: #by rizky
         labels["instances"] = instances  # Update the labels dictionary
         return labels
 
-    def write_to_file(self,filename, content):
-        try:
-            with open(filename, 'w') as file:
-                file.write(content)
-            print(f"Content successfully written to {filename}")
-        except Exception as e:
-            print(f"An error occurred: {e}")
+    # def write_to_file(self,filename, content):
+    #     try:
+    #         with open(filename, 'w') as file:
+    #             file.write(content)
+    #         print(f"Content successfully written to {filename}")
+    #     except Exception as e:
+    #         print(f"An error occurred: {e}")
 
     def convert_to_equirectangular(self, image, bboxes=None):
         if isinstance(image, str):
