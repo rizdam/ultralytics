@@ -82,10 +82,10 @@ CLI_HELP_MSG = f"""
 
     5. Explore your datasets using semantic search and SQL with a simple GUI powered by Ultralytics Explorer API
         yolo explorer data=data.yaml model=yolov8n.pt
-    
+
     6. Streamlit real-time webcam inference GUI
         yolo streamlit-predict
-        
+
     7. Run special commands:
         yolo help
         yolo checks
@@ -688,15 +688,13 @@ def entrypoint(debug=""):
 
     Examples:
         Train a detection model for 10 epochs with an initial learning_rate of 0.01:
-        # >>> entrypoint("train data=coco8.yaml model=yolov8n.pt epochs=5 lr0=0.01")
-
-        >>> entrypoint("task=detect mode=train epochs=1 data=/Volumes/Data/FinalProject/yolo/data_custom.yaml model=yolov8m.pt imgsz=640")
+        >>> entrypoint("train data=coco8.yaml model=yolov8n.pt epochs=10 lr0=0.01")
 
         Predict a YouTube video using a pretrained segmentation model at image size 320:
-        # >>> entrypoint("predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320") #by rizky
+        >>> entrypoint("predict model=yolov8n-seg.pt source='https://youtu.be/LNwODJXcvt4' imgsz=320")
 
         Validate a pretrained detection model at batch-size 1 and image size 640:
-        # >>> entrypoint("val model=yolov8n.pt data=coco8.yaml batch=1 imgsz=640") #by rizky
+        >>> entrypoint("val model=yolov8n.pt data=coco8.yaml batch=1 imgsz=640")
 
     Notes:
         - If no arguments are passed, the function will display the usage help message.
