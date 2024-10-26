@@ -54,7 +54,6 @@ class ConvertToEquirectangular: #by rizky
         h, w = img.shape[:2]
         instances.denormalize(w, h)  # Denormalize if necessary
         bboxes = instances.bboxes  # Access the bounding boxes
-        #self.write_to_file("WOIII.txt",str(bboxes)+"\n"+str(w)+"\n"+str(h)+"\n")
         return bboxes
 
     def update_bboxes(self, labels, new_bboxes):
@@ -67,14 +66,6 @@ class ConvertToEquirectangular: #by rizky
         labels["instances"] = instances  # Update the labels dictionary
         return labels
 
-    # def write_to_file(self,filename, content):
-    #     try:
-    #         with open(filename, 'w') as file:
-    #             file.write(content)
-    #         print(f"Content successfully written to {filename}")
-    #     except Exception as e:
-    #         print(f"An error occurred: {e}")
-
     def convert_to_equirectangular(self, image, bboxes=None):
         if isinstance(image, str):
             image = cv2.imread(image)
@@ -84,51 +75,40 @@ class ConvertToEquirectangular: #by rizky
         equirectangular_height = height
         equirectangular_image = np.zeros((equirectangular_height, equirectangular_width, channels), dtype=np.uint8)
 
-        matrix = [[0 for _ in range(width+1)] for _ in range(height+1)]
+        # Create a grid of coordinates
+        j_indices, i_indices = np.meshgrid(np.arange(equirectangular_width), np.arange(equirectangular_height))
 
-        for i in range(equirectangular_height):
-            for j in range(equirectangular_width):
-                lon = (j / equirectangular_width) * 2 * np.pi - np.pi
-                lat = (i / equirectangular_height) * np.pi - (np.pi / 2)
+        # Calculate longitude and latitude
+        lon = (j_indices / equirectangular_width) * 2 * np.pi - np.pi
+        lat = (i_indices / equirectangular_height) * np.pi - (np.pi / 2)
 
-                x = np.cos(lat) * np.cos(lon)
-                y = np.sin(lat)
-                z = np.cos(lat) * np.sin(lon)
+        # Convert spherical coordinates to Cartesian coordinates
+        x = np.cos(lat) * np.cos(lon)
+        y = np.sin(lat)
+        z = np.cos(lat) * np.sin(lon)
 
-                u = int((x + 1) / 2 * width)
-                v = int((y + 1) / 2 * height)
+        # Map Cartesian coordinates to image coordinates
+        u = np.clip(((x + 1) / 2 * width).astype(int), 0, width - 1)
+        v = np.clip(((y + 1) / 2 * height).astype(int), 0, height - 1)
 
-                u = np.clip(u, 0, width - 1)
-                v = np.clip(v, 0, height - 1)
-
-                equirectangular_image[i, j] = image[v, u]
-
-                # width = x
-                # height = y
-                # j = x
-                # i = y
-                # v=y
-                # u=x
-
-                # matrix
-                if j <= width:
-                    matrix[v][u] = [i, j]
+        # Fill the equirectangular image using the manual mapping function
+        matrix = [[0 for _ in range(width + 1)] for _ in range(height + 1)]
+        for i in range(equirectangular_image.shape[0]):
+            for j in range(equirectangular_image.shape[1]):
+                equirectangular_image[i, j] = image[v[i, j], u[i, j]]
+                if  j<=width:
+                    matrix[(v[i, j])] [(u[i, j])]  = [i,j]
 
         transformed_bboxes = None
-
         if bboxes is not None:
             transformed_bboxes = self.transform_bboxes(bboxes, width, height, matrix)
 
-        return equirectangular_image, transformed_bboxes
+        return equirectangular_image, transformed_bboxes, matrix
 
-    def transform_bboxes(self, bboxes, width, height, matrix=None, ):
+    def transform_bboxes(self, bboxes, width, height, matrix=None,):
         transformed_bboxes = []
         for bbox in bboxes:
             x_min, y_min, x_max, y_max = bbox
-            x_min=int(math.floor(x_min))
-            y_min=int(math.floor(y_min))
-            x_max=int(math.floor(x_max))
-            y_max=int(math.floor(y_max))
 
             # Transform each corner of the bounding box
             corners = [
@@ -138,8 +118,6 @@ class ConvertToEquirectangular: #by rizky
                 [x_max, y_max]
             ]
 
-            #self.write_to_file("WOXXX.txt", str(corners) + "\n" + str(width) + "\n" + str(height) + "\n")
-
             transformed_corners = []
             for corner in corners:
                 x_, y_ = corner
@@ -148,9 +126,9 @@ class ConvertToEquirectangular: #by rizky
                 while (not isinstance(matrix[y_][x_], list)) & (y_ > 0):
                     y_ -= 1
 
-                if (isinstance(matrix[y_][x_], list)):
-                    y = matrix[y_][x_][0]
-                    x = matrix[y_][x_][1]
+                if(isinstance(matrix[y_][x_], list)):
+                    y= matrix[y_][x_][0]
+                    x= matrix[y_][x_][1]
 
                     transformed_corners.append([x, y])
 
