@@ -121,6 +121,8 @@ class ConvertToEquirectangular: #by rizky
             transformed_corners = []
             for corner in corners:
                 x_, y_ = corner
+                x_=int(x_)
+                y_=int(y_)
                 while (not isinstance(matrix[y_][x_], list)) & (y_ < height):
                     y_ += 1
                 while (not isinstance(matrix[y_][x_], list)) & (y_ > 0):
