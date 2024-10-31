@@ -123,8 +123,8 @@ CFG_FRACTION_KEYS = {  # fractional float arguments with 0.0<=values<=1.0
     "hsv_h",
     "hsv_s",
     "hsv_v",
-    "gaussian_noise" #by rizky
-    "brightness_factor", #by 2 rizky
+    # "gaussian_noise" #by rizky
+    # "brightness_factor", #by 2 rizky
     "translate",
     "scale",
     "perspective",
