@@ -22,133 +22,6 @@ DEFAULT_MEAN = (0.0, 0.0, 0.0)
 DEFAULT_STD = (1.0, 1.0, 1.0)
 DEFAULT_CROP_FRACTION = 1.0
 
-class ConvertToEquirectangular: #by rizky
-    def __init__(self):
-        pass
-
-    def __call__(self, labels):
-        image = labels['img']
-
-        # Read bounding boxes
-        bboxes = self.read_bboxes(labels)
-
-        # Convert to equirectangular and transform bounding boxes
-        equirectangular_image, transformed_bboxes = self.convert_to_equirectangular(image, bboxes)
-
-        # Crop the image
-        equirectangular_image = self.crop_image(equirectangular_image)
-
-        # Update the image in labels
-        labels['img'] = equirectangular_image
-
-        #Update bounding boxes in labels if transformed_bboxes is not None
-        if transformed_bboxes is not None:
-            labels = self.update_bboxes(labels, transformed_bboxes)
-
-        return labels
-
-    def read_bboxes(self, labels):
-        instances = labels['instances']
-        instances.convert_bbox(format='xyxy')  # Convert to xyxy format if not already
-        img = labels['img']
-        h, w = img.shape[:2]
-        instances.denormalize(w, h)  # Denormalize if necessary
-        bboxes = instances.bboxes  # Access the bounding boxes
-        return bboxes
-
-    def update_bboxes(self, labels, new_bboxes):
-        instances = labels["instances"]
-        img = labels["img"]
-        h, w = img.shape[:2]
-        bboxes = np.array(new_bboxes, dtype=np.float32)
-        instances.update(bboxes=bboxes)  # Use the update method to set the new bounding boxes
-        instances.normalize(w, h)  # Normalize if necessary
-        labels["instances"] = instances  # Update the labels dictionary
-        return labels
-
-    def convert_to_equirectangular(self, image, bboxes=None):
-        if isinstance(image, str):
-            image = cv2.imread(image)
-
-        height, width, channels = image.shape
-        equirectangular_width = width * 2
-        equirectangular_height = height
-        equirectangular_image = np.zeros((equirectangular_height, equirectangular_width, channels), dtype=np.uint8)
-
-        # Create a grid of coordinates
-        j_indices, i_indices = np.meshgrid(np.arange(equirectangular_width), np.arange(equirectangular_height))
-
-        # Calculate longitude and latitude
-        lon = (j_indices / equirectangular_width) * 2 * np.pi - np.pi
-        lat = (i_indices / equirectangular_height) * np.pi - (np.pi / 2)
-
-        # Convert spherical coordinates to Cartesian coordinates
-        x = np.cos(lat) * np.cos(lon)
-        y = np.sin(lat)
-        z = np.cos(lat) * np.sin(lon)
-
-        # Map Cartesian coordinates to image coordinates
-        u = np.clip(((x + 1) / 2 * width).astype(int), 0, width - 1)
-        v = np.clip(((y + 1) / 2 * height).astype(int), 0, height - 1)
-
-        # Fill the equirectangular image using the manual mapping function
-        matrix = [[0 for _ in range(width + 1)] for _ in range(height + 1)]
-        for i in range(equirectangular_image.shape[0]):
-            for j in range(equirectangular_image.shape[1]):
-                equirectangular_image[i, j] = image[v[i, j], u[i, j]]
-                if  j<=width:
-                    matrix[(v[i, j])] [(u[i, j])]  = [i,j]
-
-        transformed_bboxes = None
-        if bboxes is not None:
-            transformed_bboxes = self.transform_bboxes(bboxes, height, matrix)
-
-        return equirectangular_image, transformed_bboxes
-
-    def transform_bboxes(self, bboxes, height, matrix=None,):
-        transformed_bboxes = []
-        for bbox in bboxes:
-            x_min, y_min, x_max, y_max = bbox
-
-            # Transform each corner of the bounding box
-            corners = [
-                [x_min, y_min],
-                [x_max, y_min],
-                [x_min, y_max],
-                [x_max, y_max]
-            ]
-
-            transformed_corners = []
-            for corner in corners:
-                x_, y_ = corner
-                x_=int(x_)
-                y_=int(y_)
-                while (not isinstance(matrix[y_][x_], list)) & (y_ < height):
-                    y_ += 1
-                while (not isinstance(matrix[y_][x_], list)) & (y_ > 0):
-                    y_ -= 1
-
-                if(isinstance(matrix[y_][x_], list)):
-                    y= matrix[y_][x_][0]
-                    x= matrix[y_][x_][1]
-
-                    transformed_corners.append([x, y])
-
-            transformed_x_min = min(corner[0] for corner in transformed_corners)
-            transformed_y_min = min(corner[1] for corner in transformed_corners)
-            transformed_x_max = max(corner[0] for corner in transformed_corners)
-            transformed_y_max = max(corner[1] for corner in transformed_corners)
-
-            transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
-
-        return transformed_bboxes
-
-    def crop_image(self, image):
-        height, width, _ = image.shape
-        cropped_image = image[:, :width // 2]
-        return cropped_image
-
-
 class BaseTransform:
     """
     Base class for image transformations in the Ultralytics library.
@@ -1503,44 +1376,6 @@ class RandomHSV:
             cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR, dst=img)  # no return needed
         return labels
 
-class RandomBrightness: #by 2 rizky
-    def __init__(self, brightness_factor=0.5):
-        self.brightness_factor = brightness_factor
-
-    def __call__(self, labels):
-        img = labels["img"]
-        if isinstance(img, str):
-            img_pil = Image.open(img)
-        else:
-            img_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-
-        enhancer = ImageEnhance.Brightness(img_pil)
-        img_pil = enhancer.enhance(self.brightness_factor*2)
-
-        img = np.array(img_pil)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        labels["img"] = img
-        return labels
-
-class RandomGaussianNoise: #by rizky
-    def __init__(self, noise_level=0.05):
-        self.noise_level = noise_level
-
-    def __call__(self, labels):
-        img = labels["img"]
-        if isinstance(img, str):
-            img = cv2.imread(img)
-
-        row, col, ch = img.shape
-        mean = 0
-        sigma = self.noise_level * 255
-        gauss = np.random.normal(mean, sigma, (row, col, ch)).astype('float32')
-
-        noisy_image = img.astype('float32') + gauss
-        noisy_image = np.clip(noisy_image, 0, 255).astype(np.uint8)
-        labels["img"] = noisy_image
-        return labels
-
 class RandomFlip:
     """
     Applies a random horizontal or vertical flip to an image with a given probability.
@@ -2445,7 +2280,6 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
     """
     pre_transform = Compose(
         [
-            ConvertToEquirectangular(),
             Mosaic(dataset, imgsz=imgsz, p=hyp.mosaic),
             CopyPaste(p=hyp.copy_paste),
             RandomPerspective(
@@ -2473,8 +2307,6 @@ def v8_transforms(dataset, imgsz, hyp, stretch=False):
             MixUp(dataset, pre_transform=pre_transform, p=hyp.mixup),
             Albumentations(p=1.0),
             RandomHSV(hgain=hyp.hsv_h, sgain=hyp.hsv_s, vgain=hyp.hsv_v),
-            RandomGaussianNoise(noise_level=hyp.gaussian_noise), #by rizky
-            RandomBrightness(brightness_factor=hyp.brightness_factor), #by 2 rizky
             RandomFlip(direction="vertical", p=hyp.flipud),
             RandomFlip(direction="horizontal", p=hyp.fliplr, flip_idx=flip_idx),
         ]
@@ -2551,8 +2383,6 @@ def classify_augmentations(
     hsv_h=0.015,  # image HSV-Hue augmentation (fraction)
     hsv_s=0.4,  # image HSV-Saturation augmentation (fraction)
     hsv_v=0.4,  # image HSV-Value augmentation (fraction)
-    gaussian_noise = 0.05, #image gaussian noise #by rizky
-    brightness_factor = 0.5, #image brightness factor #by 2 rizky
     force_color_jitter=False,
     erasing=0.0,
     interpolation="BILINEAR",
@@ -2634,12 +2464,6 @@ def classify_augmentations(
 
     if not disable_color_jitter:
         secondary_tfl.append(T.ColorJitter(brightness=hsv_v, contrast=hsv_v, saturation=hsv_s, hue=hsv_h))
-
-    if gaussian_noise > 0.0: #by rizky
-        secondary_tfl.append(RandomGaussianNoise(noise_level=gaussian_noise))
-
-    if brightness_factor > 0.0: #by 2 rizky
-        secondary_tfl.append(RandomBrightness(brightness_factor=brightness_factor))
 
     final_tfl = [
         T.ToTensor(),
