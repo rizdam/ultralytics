@@ -103,7 +103,7 @@ class ConvertToEquirectangular: #by rizky
         if bboxes is not None:
             transformed_bboxes = self.transform_bboxes(bboxes, width, height, matrix)
 
-        return equirectangular_image, transformed_bboxes, matrix
+        return equirectangular_image, transformed_bboxes
 
     def transform_bboxes(self, bboxes, width, height, matrix=None):
         transformed_bboxes = []
