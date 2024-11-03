@@ -101,11 +101,11 @@ class ConvertToEquirectangular: #by rizky
 
         transformed_bboxes = None
         if bboxes is not None:
-            transformed_bboxes = self.transform_bboxes(bboxes, height, matrix)
+            transformed_bboxes = self.transform_bboxes(bboxes, width, height, matrix)
 
-        return equirectangular_image, transformed_bboxes
+        return equirectangular_image, transformed_bboxes, matrix
 
-    def transform_bboxes(self, bboxes, height, matrix=None,):
+    def transform_bboxes(self, bboxes, width, height, matrix=None):
         transformed_bboxes = []
         for bbox in bboxes:
             x_min, y_min, x_max, y_max = bbox
@@ -121,25 +121,23 @@ class ConvertToEquirectangular: #by rizky
             transformed_corners = []
             for corner in corners:
                 x_, y_ = corner
-                x_=int(x_)
-                y_=int(y_)
-                while (not isinstance(matrix[y_][x_], list)) & (y_ < height):
+                while (y_ < height and y_ >= 0 and x_ < width and x_ >= 0 and not isinstance(matrix[y_][x_], list)):
                     y_ += 1
-                while (not isinstance(matrix[y_][x_], list)) & (y_ > 0):
+                while (y_ < height and y_ >= 0 and x_ < width and x_ >= 0 and not isinstance(matrix[y_][x_], list)):
                     y_ -= 1
 
-                if(isinstance(matrix[y_][x_], list)):
-                    y= matrix[y_][x_][0]
-                    x= matrix[y_][x_][1]
-
+                if (y_ < height and y_ >= 0 and x_ < width and x_ >= 0 and isinstance(matrix[y_][x_], list)):
+                    y = matrix[y_][x_][0]
+                    x = matrix[y_][x_][1]
                     transformed_corners.append([x, y])
 
-            transformed_x_min = min(corner[0] for corner in transformed_corners)
-            transformed_y_min = min(corner[1] for corner in transformed_corners)
-            transformed_x_max = max(corner[0] for corner in transformed_corners)
-            transformed_y_max = max(corner[1] for corner in transformed_corners)
+            if transformed_corners:
+                transformed_x_min = min(corner[0] for corner in transformed_corners)
+                transformed_y_min = min(corner[1] for corner in transformed_corners)
+                transformed_x_max = max(corner[0] for corner in transformed_corners)
+                transformed_y_max = max(corner[1] for corner in transformed_corners)
 
-            transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
+                transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
 
         return transformed_bboxes
 
