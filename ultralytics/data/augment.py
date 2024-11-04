@@ -139,7 +139,8 @@ class ConvertToEquirectangular: #by rizky
                 transformed_x_max = max(corner[0] for corner in transformed_corners)
                 transformed_y_max = max(corner[1] for corner in transformed_corners)
 
-                transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
+                if transformed_x_min!=transformed_x_max and transformed_y_min!=transformed_y_max:
+                    transformed_bboxes.append([transformed_x_min, transformed_y_min, transformed_x_max, transformed_y_max])
 
         return transformed_bboxes
 
