@@ -42,8 +42,11 @@ class ConvertToEquirectangular: #by rizky
         labels['img'] = equirectangular_image
 
         #Update bounding boxes in labels if transformed_bboxes is not None
-        if transformed_bboxes is not None:
-            labels = self.update_bboxes(labels, transformed_bboxes)
+        if transformed_bboxes and len(transformed_bboxes) > 0:
+            # Ensure all transformed bounding boxes have 4 elements
+            valid_bboxes = [bbox for bbox in transformed_bboxes if len(bbox) == 4]
+            if valid_bboxes:
+                labels = self.update_bboxes(labels, valid_bboxes)
 
         return labels
 
@@ -984,6 +987,10 @@ class Mosaic(BaseMixTransform):
         }
         final_labels["instances"].clip(imgsz, imgsz)
         good = final_labels["instances"].remove_zero_area_boxes()
+        if len(final_labels["cls"]) != len(good):
+            min_size = min(len(final_labels["cls"]), len(good))
+            final_labels["cls"] = final_labels["cls"][:min_size]
+            good = good[:min_size]
         final_labels["cls"] = final_labels["cls"][good]
         if "texts" in mosaic_labels[0]:
             final_labels["texts"] = mosaic_labels[0]["texts"]
